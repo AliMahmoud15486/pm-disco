@@ -1,0 +1,18 @@
+Session Recording Analysis - April 2026
+Tool: Hotjar
+Total Sessions Reviewed: 50
+
+Observation 1: The Upgrade Page (URL: /upgrade)
+- Out of 20 users who landed on the upgrade page, 18 spent an average of 45 seconds scrolling up and down the feature comparison table.
+- We observed "rage clicking" on the tooltip icon next to "Advanced Analytics" in the Pro tier column. The tooltip appears to be broken on mobile Safari; it doesn't open when tapped.
+- Users frequently scrolled to the bottom, scrolled back to the top, and then abandoned the page without clicking "Subscribe".
+
+Observation 2: The Checkout Form (URL: /checkout)
+- 10 users reached the checkout form. 5 successfully completed the purchase.
+- The other 5 users abandoned the form after entering their credit card details.
+- In 3 of these cases, the user attempted to submit the form, but a red error message appeared near the zip code field. The users tried re-entering the zip code twice before closing the tab. The error message was not fully visible on mobile screens.
+
+Observation 3: Meal Planner (URL: /dashboard/meals)
+- Users frequently navigate to Settings > Profile > Dietary Restrictions, check a box (e.g., "Dairy-Free"), and immediately navigate to the Meal Planner.
+- We observed users clicking "Refresh Suggestions" multiple times.
+- Several users highlighted the ingredients list of the suggested meal with their cursor, lingered for a few seconds, and then closed the app entirely.

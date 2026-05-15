@@ -1,0 +1,6 @@
+Ticket ID,Date,User Tier,Category,Description,Status
+T-1044,2026-04-12,Pro,Bug,"Meal planner suggesting recipes with peanuts even though I marked peanut allergy in settings. Very dangerous.",Resolved
+T-1045,2026-04-13,Free,Billing,"I tried to upgrade to Pro but my credit card keeps getting declined. I called my bank and they said the merchant name was flagged as suspicious.",Open
+T-1046,2026-04-14,Elite,Feature Request,"My trainer sent me a message but I didn't get a push notification. I missed our scheduled check-in.",Open
+T-1047,2026-04-15,Free,Bug,"App crashes every time I try to open the 'Suggested Meals' tab on my Android device.",Investigating
+T-1048,2026-04-16,Free,Feedback,"The upgrade screen is really confusing. It says 'Advanced Analytics' but what does that actually track? Heart rate? Sleep? I don't know what I'm buying.",Closed

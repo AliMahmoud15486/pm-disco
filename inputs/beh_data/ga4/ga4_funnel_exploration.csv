@@ -1,0 +1,10 @@
+Date Range: 2026-04-01 to 2026-04-30
+Event Name,Total Users,Completion Rate,Drop-off Rate
+1. session_start,150000,100%,0%
+2. view_upgrade_page,25000,16.6%,83.4%
+3. click_subscribe_button,3000,12.0%,88.0%
+4. view_checkout_form,2800,93.3%,6.7%
+5. submit_payment,1400,50.0%,50.0%
+6. purchase_complete,1350,96.4%,3.6%
+
+Note: The biggest drop-off in the funnel occurs between viewing the upgrade page and clicking the subscribe button (88% drop-off). The second biggest drop-off is on the checkout form (50% drop-off).

@@ -1,0 +1,10 @@
+Date: 2026-04-10
+User: Sarah M. (Free Tier User, 3 months)
+Interviewer: John (UX Research)
+
+John: Hi Sarah, thanks for chatting. How are you finding the app so far?
+Sarah: It's okay. I like the workout tracking, but I'm really frustrated with the meal planning section. It keeps recommending meals with dairy, and I've set my profile to dairy-free three times now. 
+John: I'm sorry to hear that. Can you walk me through how you set that up?
+Sarah: I went to Settings > Profile > Dietary Restrictions and checked "Dairy-Free". But the "Suggested Meals" on the dashboard still show yogurt and cheese. I don't trust the app's recommendations anymore.
+John: Got it. Have you considered upgrading to Pro?
+Sarah: I looked at the upgrade page, but honestly, I couldn't tell what I was actually getting for $9.99. The feature list was super vague. "Advanced analytics" doesn't mean anything to me. I just want a working meal planner.

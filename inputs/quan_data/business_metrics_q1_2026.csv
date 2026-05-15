@@ -1,0 +1,7 @@
+Month,Active Users (MAU),Free Users,Pro Users,Elite Users,MRR ($),Churn Rate (Free),Churn Rate (Pro),Churn Rate (Elite),Upgrade Conversion Rate (Free to Pro)
+Jan 2026,140000,120000,18000,2000,279820,12.5%,4.2%,2.1%,1.8%
+Feb 2026,145000,124000,18800,2200,297812,12.8%,4.5%,2.3%,1.7%
+Mar 2026,148000,126500,19200,2300,306808,13.1%,4.8%,2.4%,1.5%
+Apr 2026,150000,128500,19000,2500,314810,13.5%,5.5%,2.5%,1.2%
+
+Note: Notice the declining Upgrade Conversion Rate (from 1.8% in Jan to 1.2% in Apr) and the increasing Churn Rate for Pro users (from 4.2% in Jan to 5.5% in Apr). Overall MAU is growing, but revenue growth is slowing down.
