@@ -12,6 +12,10 @@ It works from LinkedIn's official data export (no scraping or automation, so you
 4. **Run it**: In Claude Code, ask to run the `run_linkedin_analysis` workflow.
 5. **Repeat monthly or quarterly**: Add each new export alongside the old ones. The analyzer will also show new connections, job changes, and promotions.
 
+## Dashboard
+
+`dashboard/linkedin-analyzer.html` is an interactive dashboard. It opens with sample data; click **Load Connections.csv** to see your own network. The file is read in your browser only and is never uploaded. Edit "Your ideal customer" on the page to change how contacts are scored.
+
 ## Structure
 
 ```
@@ -24,6 +28,8 @@ linkedin_analyzer/
 │   │   └── compare_snapshots.md      # Changes between exports
 │   └── workflows/
 │       └── run_linkedin_analysis.md
+├── dashboard/
+│   └── linkedin-analyzer.html        # Interactive dashboard
 ├── inputs/
 │   ├── business/icp.md               # Your business + ideal customer
 │   └── connections/                  # Connections_YYYY-MM-DD.csv files

@@ -1,0 +1,668 @@
+<title>LinkedIn Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: summary tiles → network charts in a 2-col grid → ICP settings + filtered prospect table. */
+:root {
+  --bg: #f6f7f8;
+  --surface: #fcfcfb;
+  --ink: #12161c;
+  --ink-2: #4b5260;
+  --ink-3: #7a8190;
+  --line: #e1e4e9;
+  --line-2: #eef0f3;
+  --accent: #1c5cab;
+  --accent-wash: #e6effa;
+  --bar: #2a78d6;
+  --bar-hover: #1c5cab;
+  --tier-a: #184f95;
+  --tier-b: #2a78d6;
+  --tier-c: #86b6ef;
+  --tier-n: #cfd3da;
+  --tier-a-ink: #ffffff;
+  --tier-b-ink: #ffffff;
+  --tier-c-ink: #0d2a4f;
+  --tier-n-ink: #3a404b;
+  --notice-bg: #fff6e0;
+  --notice-line: #f0d48a;
+  --notice-ink: #5a4300;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111317; --surface: #1a1c21; --ink: #f2f4f7; --ink-2: #b9bfca; --ink-3: #8a91a0;
+    --line: #2c3038; --line-2: #23262d; --accent: #86b6ef; --accent-wash: #1d2a3b;
+    --bar: #3987e5; --bar-hover: #6da7ec;
+    --tier-a: #cde2fb; --tier-b: #6da7ec; --tier-c: #256abf; --tier-n: #3a3e47;
+    --tier-a-ink: #0d2a4f; --tier-b-ink: #0d2a4f; --tier-c-ink: #ffffff; --tier-n-ink: #c9ced8;
+    --notice-bg: #2b2412; --notice-line: #5c4a1a; --notice-ink: #f2dc9c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111317; --surface: #1a1c21; --ink: #f2f4f7; --ink-2: #b9bfca; --ink-3: #8a91a0;
+  --line: #2c3038; --line-2: #23262d; --accent: #86b6ef; --accent-wash: #1d2a3b;
+  --bar: #3987e5; --bar-hover: #6da7ec;
+  --tier-a: #cde2fb; --tier-b: #6da7ec; --tier-c: #256abf; --tier-n: #3a3e47;
+  --tier-a-ink: #0d2a4f; --tier-b-ink: #0d2a4f; --tier-c-ink: #ffffff; --tier-n-ink: #c9ced8;
+  --notice-bg: #2b2412; --notice-line: #5c4a1a; --notice-ink: #f2dc9c;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 17px; font-weight: 600; }
+.sub { color: var(--ink-2); margin: 4px 0 0; max-width: 68ch; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 600; }
+
+header.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: 600 13px var(--f-body); border-radius: 8px; padding: 9px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.btn:hover { border-color: var(--ink-3); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.notice { display: flex; gap: 12px; align-items: flex-start; background: var(--notice-bg); border: 1px solid var(--notice-line); color: var(--notice-ink); border-radius: 10px; padding: 12px 14px; }
+.notice b { font-weight: 600; }
+.notice.real { background: var(--accent-wash); border-color: var(--line); color: var(--ink); }
+.notice .tag { font: 600 11px var(--f-mono); letter-spacing: 0.06em; padding: 2px 7px; border-radius: 4px; border: 1px solid currentColor; white-space: nowrap; }
+.notice p { margin: 0; }
+.err { color: #d03b3b; font-weight: 600; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; }
+.tile .v { font-family: var(--f-display); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile .k { color: var(--ink-2); font-size: 13px; }
+.tile .d { color: var(--ink-3); font-size: 12px; }
+
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; align-content: start; }
+.card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card .note { color: var(--ink-3); font-size: 12px; }
+.span2 { grid-column: 1 / -1; }
+
+/* tier stacked bar */
+.stack { display: flex; height: 34px; gap: 2px; border-radius: 4px; overflow: hidden; }
+.stack .seg { min-width: 3px; cursor: default; transition: filter .12s; }
+.stack .seg:hover, .stack .seg:focus-visible { filter: brightness(1.12); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.legend .li { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2); }
+.legend .sw { width: 12px; height: 12px; border-radius: 3px; }
+.legend .li b { color: var(--ink); font-weight: 600; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* horizontal bars */
+.hbars { display: grid; gap: 7px; }
+.hrow { display: grid; grid-template-columns: minmax(90px, 34%) minmax(0, 1fr) 46px; align-items: center; gap: 10px; font-size: 13px; }
+.hrow .lab { color: var(--ink-2); display: flex; gap: 6px; align-items: center; min-width: 0; }
+.hrow .lab span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.hrow .track { height: 14px; position: relative; }
+.hrow .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; min-width: 2px; transition: background .12s; }
+.hrow:hover .fill, .hrow:focus-visible .fill { background: var(--bar-hover); }
+.hrow .val { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.chip { font: 600 10px var(--f-body); text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 4px; background: var(--accent-wash); color: var(--accent); flex: none; }
+
+/* column chart */
+.cols { position: relative; height: 180px; margin-top: 14px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; align-items: end; border-bottom: 1px solid var(--line); }
+.cols .gl { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line-2); pointer-events: none; }
+.cols .gl span { position: absolute; left: 0; top: -15px; background: var(--surface); padding-right: 4px; font: 11px var(--f-mono); color: var(--ink-3); }
+.cols .c { height: 100%; display: flex; align-items: flex-end; cursor: default; position: relative; z-index: 1; }
+.cols .c i { display: block; width: 100%; background: var(--bar); border-radius: 4px 4px 0 0; min-height: 2px; transition: background .12s; }
+.cols .c:hover i, .cols .c:focus-visible i { background: var(--bar-hover); }
+.xlabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; font: 11px var(--f-mono); color: var(--ink-3); text-align: center; }
+
+/* tooltip */
+#tip { position: fixed; z-index: 50; pointer-events: none; background: var(--ink); color: var(--bg); border-radius: 6px; padding: 7px 10px; font-size: 12px; line-height: 1.35; max-width: 260px; opacity: 0; transition: opacity .1s; }
+#tip strong { display: block; font: 600 14px var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* ICP settings */
+details.icp { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details.icp summary { cursor: pointer; padding: 14px 18px; display: flex; justify-content: space-between; gap: 12px; align-items: center; list-style: none; }
+details.icp summary::-webkit-details-marker { display: none; }
+details.icp summary::after { content: "Edit"; font: 600 12px var(--f-body); color: var(--accent); }
+details.icp[open] summary::after { content: "Close"; }
+.icp-body { padding: 0 18px 18px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.field { display: grid; gap: 5px; align-content: start; }
+.field label, .field .lbl { font-weight: 600; font-size: 13px; }
+.field small { color: var(--ink-3); font-size: 12px; }
+textarea, input[type=search], select { font: 13px var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; width: 100%; }
+textarea { min-height: 64px; resize: vertical; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; }
+.checks label { display: flex; gap: 5px; align-items: center; font-weight: 400; }
+.weights { grid-column: 1 / -1; color: var(--ink-2); font-size: 12px; border-top: 1px solid var(--line-2); padding-top: 12px; }
+
+/* table */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.filters .grow { flex: 1 1 220px; min-width: 0; }
+.filters select { width: auto; }
+.count { color: var(--ink-3); font-size: 12px; margin-left: auto; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 820px; font-size: 13px; }
+th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.score { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-weight: 500; width: 64px; }
+.meter { height: 4px; background: var(--line-2); border-radius: 2px; margin-top: 4px; width: 44px; }
+.meter i { display: block; height: 100%; border-radius: 2px; background: var(--bar); }
+.pill { display: inline-block; font: 600 11px var(--f-body); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.A { background: var(--tier-a); color: var(--tier-a-ink); }
+.pill.B { background: var(--tier-b); color: var(--tier-b-ink); }
+.pill.C { background: var(--tier-c); color: var(--tier-c-ink); }
+.pill.N { background: var(--tier-n); color: var(--tier-n-ink); }
+.tagp { display: inline-block; font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 4px; }
+td .why { color: var(--ink-2); font-size: 12px; }
+td a { color: var(--accent); text-decoration: none; font-weight: 600; }
+td a:hover { text-decoration: underline; }
+.muted { color: var(--ink-3); }
+.more { display: flex; justify-content: center; }
+footer.foot { color: var(--ink-3); font-size: 12px; display: grid; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 480px) { .wrap { padding-inline: 16px; } h1 { font-size: 24px; } .hrow { grid-template-columns: minmax(80px, 38%) minmax(0, 1fr) 40px; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">PM Disco · LinkedIn Analyzer</div>
+      <h1>Who in your network to talk to first</h1>
+      <p class="sub">Every connection scored 0–100 against your ideal customer profile, from LinkedIn's own Connections export.</p>
+    </div>
+    <div class="actions">
+      <input type="file" id="file" accept=".csv,text/csv" hidden>
+      <button class="btn primary" id="loadBtn" type="button">Load Connections.csv</button>
+      <button class="btn" id="sampleBtn" type="button" hidden>Back to sample data</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" role="status">
+    <span class="tag">SAMPLE</span>
+    <p><b>You're looking at made-up sample data</b> (420 fictional connections). Load your <span class="num">Connections.csv</span> to see your own network. The file is read inside your browser only; it is not uploaded or saved anywhere.</p>
+  </div>
+
+  <section class="tiles" id="tiles" aria-label="Summary"></section>
+
+  <section class="grid2" aria-label="Network breakdown">
+    <div class="card span2">
+      <header><h2>Fit with your ideal customer</h2><span class="note">Tier A 75+ · B 50–74 · C 25–49</span></header>
+      <div class="stack" id="tierStack"></div>
+      <div class="legend" id="tierLegend"></div>
+    </div>
+    <div class="card">
+      <header><h2>By function</h2><span class="note">From job titles</span></header>
+      <div class="hbars" id="fnBars"></div>
+    </div>
+    <div class="card">
+      <header><h2>By seniority</h2><span class="note">From job titles</span></header>
+      <div class="hbars" id="senBars"></div>
+    </div>
+    <div class="card">
+      <header><h2>Connections added per quarter</h2><span class="note" id="growthNote"></span></header>
+      <div class="cols" id="cols"></div>
+      <div class="xlabs" id="xlabs"></div>
+    </div>
+    <div class="card">
+      <header><h2>Top companies</h2><span class="note">Most connections</span></header>
+      <div class="hbars" id="coBars"></div>
+    </div>
+  </section>
+
+  <details class="icp" id="icp">
+    <summary>
+      <div>
+        <h2>Your ideal customer</h2>
+        <div class="note muted" id="icpSummary"></div>
+      </div>
+    </summary>
+    <div class="icp-body">
+      <div class="field">
+        <label for="dmKw">Decision-maker titles</label>
+        <textarea id="dmKw"></textarea>
+        <small>Comma-separated words found in their title. Worth 40 points.</small>
+      </div>
+      <div class="field">
+        <label for="chKw">Champion / influencer titles</label>
+        <textarea id="chKw"></textarea>
+        <small>Worth 25 points. Other people in a target function get 10.</small>
+      </div>
+      <div class="field">
+        <span class="lbl">Target functions</span>
+        <div class="checks" id="fnChecks"></div>
+      </div>
+      <div class="field">
+        <span class="lbl">Target seniority</span>
+        <div class="checks" id="senChecks"></div>
+        <small>Matching seniority is worth 20 points.</small>
+      </div>
+      <div class="field">
+        <label for="tgtCo">Target accounts</label>
+        <textarea id="tgtCo"></textarea>
+        <small>Company names you want to win. A match is worth 30 points.</small>
+      </div>
+      <div class="field">
+        <label for="indKw">Industry words in company name</label>
+        <textarea id="indKw"></textarea>
+        <small>e.g. "health, logistics, bank". A match is worth 15 points. The export has no industry column, so this is a rough guide until company data is enriched.</small>
+      </div>
+      <div class="field">
+        <label for="partKw">Partner / referrer titles</label>
+        <textarea id="partKw"></textarea>
+        <small>Tagged as Partner instead of scored as a buyer.</small>
+      </div>
+      <div class="field">
+        <label for="compCo">Competitors</label>
+        <textarea id="compCo"></textarea>
+        <small>Anyone at these companies scores 0.</small>
+      </div>
+      <div class="weights">Score = title fit (40) + seniority (20) + company fit (30) + relationship (10: connected in the last 2 years, otherwise 5). Changes rescore everything instantly and are remembered in this browser.</div>
+    </div>
+  </details>
+
+  <section class="card" aria-label="Prospects">
+    <header><h2>Prioritized contacts</h2><button class="btn" id="copyBtn" type="button">Copy as CSV</button></header>
+    <div class="filters">
+      <input type="search" id="q" class="grow" placeholder="Search name, title or company" aria-label="Search contacts">
+      <select id="fTier" aria-label="Tier"><option value="">All tiers</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option><option value="N">Not a fit</option><option value="P">Partners</option></select>
+      <select id="fFn" aria-label="Function"><option value="">All functions</option></select>
+      <select id="fSen" aria-label="Seniority"><option value="">All seniority</option></select>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Score</th><th>Tier</th><th>Name</th><th>Title</th><th>Company</th><th>Connected</th><th>Why</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="more"><button class="btn" id="moreBtn" type="button">Show 50 more</button></div>
+  </section>
+
+  <footer class="foot">
+    <span>Get your export: LinkedIn → Settings &amp; Privacy → Data privacy → Get a copy of your data → Connections.</span>
+    <span>Functions and seniority are inferred from job titles and will be wrong for some people. Check before reaching out.</span>
+  </footer>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+(() => {
+  const FUNCTIONS = ["Founder/Exec", "Sales", "Marketing", "Product", "Engineering", "Operations", "Finance", "HR", "Other"];
+  const SENIORITY = ["C-level/Founder", "VP", "Director", "Manager", "Individual Contributor", "Unknown"];
+  const TIERS = [
+    { k: "A", label: "Tier A", v: "--tier-a" },
+    { k: "B", label: "Tier B", v: "--tier-b" },
+    { k: "C", label: "Tier C", v: "--tier-c" },
+    { k: "N", label: "Not a fit", v: "--tier-n" },
+  ];
+  const DEFAULT_ICP = {
+    dm: "ceo, founder, coo, head of operations, vp operations, chief operating, managing director, owner",
+    ch: "operations manager, product manager, head of product, project manager, strategy",
+    fns: ["Founder/Exec", "Operations", "Product"],
+    sens: ["C-level/Founder", "VP", "Director"],
+    tgt: "Northwind Logistics, Bluepeak Health, Corvane Retail, Harborline Freight, Meridian Clinics",
+    ind: "logistics, freight, health, clinic, retail",
+    part: "consultant, agency, advisor, partner",
+    comp: "Opslane, Flowgrid",
+  };
+
+  /* ---------- helpers ---------- */
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const list = (s) => s.split(/[,\n]/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const fmt = (n) => n.toLocaleString("en-GB");
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+  const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  const hasWord = (text, kw) => {
+    const esc = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp("(^|[^a-z])" + esc + "($|[^a-z])").test(text);
+  };
+
+  function classify(title) {
+    const t = (title || "").toLowerCase();
+    let sen = "Unknown";
+    if (!t.trim()) sen = "Unknown";
+    else if (/\b(ceo|cto|cfo|coo|cmo|cpo|cro|chief|founder|co-founder|cofounder|owner|president|managing director|managing partner)\b/.test(t)) sen = "C-level/Founder";
+    else if (/\b(vp|vice president|svp|evp)\b/.test(t)) sen = "VP";
+    else if (/\b(director|head of)\b/.test(t)) sen = "Director";
+    else if (/\b(manager|lead|principal|supervisor)\b/.test(t)) sen = "Manager";
+    else sen = "Individual Contributor";
+    let fn = "Other";
+    if (sen === "C-level/Founder" && /\b(ceo|founder|co-founder|cofounder|owner|president|managing director|managing partner)\b/.test(t)) fn = "Founder/Exec";
+    else if (/\b(sales|account executive|account manager|business development|bdr|sdr|revenue|partnerships|cro)\b/.test(t)) fn = "Sales";
+    else if (/\b(marketing|growth|brand|content|seo|demand|communications|cmo)\b/.test(t)) fn = "Marketing";
+    else if (/\b(product|cpo|ux|design)\b/.test(t)) fn = "Product";
+    else if (/\b(engineer|engineering|developer|software|devops|architect|cto|data|it|technology)\b/.test(t)) fn = "Engineering";
+    else if (/\b(operations|ops|coo|supply|logistics|procurement|customer success|support|project)\b/.test(t)) fn = "Operations";
+    else if (/\b(finance|financial|accountant|accounting|controller|cfo|investor|investment|treasury)\b/.test(t)) fn = "Finance";
+    else if (/\b(hr|people|talent|recruiter|recruiting|human resources)\b/.test(t)) fn = "HR";
+    else if (sen === "C-level/Founder") fn = "Founder/Exec";
+    return { fn, sen };
+  }
+
+  function parseDate(s) {
+    if (!s) return null;
+    const m = s.trim().match(/^(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})$/);
+    if (m && MONTHS[m[2].toLowerCase()] != null) return new Date(+m[3], MONTHS[m[2].toLowerCase()], +m[1]);
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  }
+
+  function parseCSV(text) {
+    const rows = []; let row = [], f = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+        else f += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(f); f = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(f); rows.push(row); row = []; f = "";
+      } else f += c;
+    }
+    if (f || row.length) { row.push(f); rows.push(row); }
+    return rows;
+  }
+
+  function fromExport(text) {
+    const rows = parseCSV(text.replace(/^﻿/, ""));
+    const h = rows.findIndex((r) => r.map((x) => x.trim().toLowerCase()).includes("first name"));
+    if (h < 0) throw new Error("This doesn't look like LinkedIn's Connections.csv. It needs a header row starting with \"First Name\".");
+    const head = rows[h].map((x) => x.trim().toLowerCase());
+    const idx = (n) => head.indexOf(n);
+    const iF = idx("first name"), iL = idx("last name"), iU = idx("url"), iE = idx("email address"), iC = idx("company"), iP = idx("position"), iD = idx("connected on");
+    const out = [];
+    for (const r of rows.slice(h + 1)) {
+      if (!r || r.every((x) => !x || !x.trim())) continue;
+      const g = (i) => (i >= 0 && r[i] != null ? r[i].trim() : "");
+      out.push({ first: g(iF), last: g(iL), url: g(iU), email: g(iE), company: g(iC), title: g(iP), date: parseDate(g(iD)) });
+    }
+    if (!out.length) throw new Error("The file has a header but no connections in it.");
+    return out;
+  }
+
+  /* ---------- sample data (fictional) ---------- */
+  function makeSample() {
+    let s = 20261003;
+    const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+    const pick = (a) => a[Math.floor(rnd() * a.length)];
+    const firsts = ["Amira", "Ben", "Chloe", "Daniel", "Elena", "Farah", "George", "Hana", "Isaac", "Jade", "Karim", "Lena", "Mateo", "Nadia", "Omar", "Priya", "Quentin", "Rania", "Sam", "Tara", "Usman", "Vera", "Will", "Yasmin", "Zain", "Leila", "Marcus", "Noor", "Olivia", "Rashid", "Sofia", "Tom"];
+    const lasts = ["Haddad", "Okafor", "Lindqvist", "Moreau", "Kaur", "Santos", "Novak", "Rahman", "Fischer", "Costa", "Ibrahim", "Walsh", "Tanaka", "Mensah", "Petrov", "Aziz", "Byrne", "Dubois", "Khalil", "Reyes", "Shah", "Varga", "Yilmaz", "Hughes"];
+    const companies = [
+      ["Northwind Logistics", 9], ["Bluepeak Health", 7], ["Corvane Retail", 6], ["Harborline Freight", 5], ["Meridian Clinics", 4],
+      ["Opslane", 6], ["Flowgrid", 4], ["Tallow & Finch Consulting", 8], ["Brightmoor Bank", 10], ["Kestrel Software", 14], ["Quillstone Media", 9],
+      ["Ardent Labs", 11], ["Saltmarsh Foods", 7], ["Vantor Energy", 6], ["Ironleaf Capital", 5], ["Pinecrest Health Group", 6], ["Lumen Retail Co", 6],
+      ["Granite Freight Partners", 5], ["Orbit Analytics", 9], ["Cobalt Studio Agency", 7], ["Silverline Insurance", 6], ["Hollis University", 5],
+      ["Redwater Logistics", 6], ["Nimbus Cloud", 10], ["Self-employed", 6], ["Fernway Clinics", 4], ["Marrow Telecom", 5], ["Atlas Manufacturing", 6],
+    ];
+    const coBag = []; companies.forEach(([n, w]) => { for (let i = 0; i < w; i++) coBag.push(n); });
+    const titles = [
+      ["CEO", 3], ["Co-Founder & CEO", 3], ["Founder", 3], ["COO", 3], ["Chief Operating Officer", 2], ["Managing Director", 2], ["Owner", 2],
+      ["VP Operations", 3], ["VP Sales", 4], ["VP Marketing", 3], ["VP Engineering", 3], ["Head of Operations", 4], ["Head of Product", 3], ["Director of Finance", 3],
+      ["Operations Director", 3], ["Marketing Director", 3], ["Engineering Director", 2], ["Operations Manager", 8], ["Product Manager", 9], ["Senior Product Manager", 4],
+      ["Project Manager", 5], ["Account Executive", 9], ["Business Development Manager", 6], ["Sales Manager", 5], ["Marketing Manager", 6], ["Content Strategist", 3],
+      ["Software Engineer", 14], ["Senior Software Engineer", 9], ["Data Analyst", 7], ["Data Scientist", 4], ["DevOps Engineer", 3], ["UX Designer", 5],
+      ["Financial Analyst", 4], ["Accountant", 3], ["HR Business Partner", 3], ["Talent Acquisition Lead", 3], ["Recruiter", 4], ["Customer Success Manager", 5],
+      ["Supply Chain Analyst", 4], ["Management Consultant", 4], ["Independent Consultant", 3], ["Strategy Advisor", 2], ["Student", 2], ["", 6],
+    ];
+    const tBag = []; titles.forEach(([n, w]) => { for (let i = 0; i < w; i++) tBag.push(n); });
+    const end = new Date(2026, 8, 30).getTime(), start = new Date(2019, 0, 1).getTime();
+    const out = [];
+    for (let i = 0; i < 420; i++) {
+      const r = Math.pow(rnd(), 0.7);
+      const date = new Date(start + r * (end - start));
+      const title = pick(tBag);
+      out.push({ first: pick(firsts), last: pick(lasts), url: "", email: rnd() < 0.08 ? "hidden@example.com" : "", company: title ? (title === "Independent Consultant" ? "Self-employed" : pick(coBag)) : (rnd() < 0.5 ? "" : pick(coBag)), title, date });
+    }
+    return out;
+  }
+
+  /* ---------- ICP + scoring ---------- */
+  let icp = { ...DEFAULT_ICP };
+  try { const saved = JSON.parse(localStorage.getItem("li-icp") || "null"); if (saved) icp = { ...icp, ...saved }; } catch (e) {}
+  const saveIcp = () => { try { localStorage.setItem("li-icp", JSON.stringify(icp)); } catch (e) {} };
+
+  function score(people) {
+    const dm = list(icp.dm), ch = list(icp.ch), tgt = list(icp.tgt), ind = list(icp.ind), part = list(icp.part), comp = list(icp.comp);
+    const now = Date.now(), twoYears = 730 * 864e5;
+    return people.map((p) => {
+      const t = (p.title || "").toLowerCase(), co = (p.company || "").toLowerCase();
+      const { fn, sen } = classify(p.title);
+      const why = [];
+      let s = 0, tag = "";
+      if (comp.some((c) => co && co.includes(c))) return { ...p, fn, sen, score: 0, tier: "N", tag: "Competitor", why: "Works at a competitor" };
+      const isPartner = part.some((k) => hasWord(t, k));
+      if (dm.some((k) => hasWord(t, k))) { s += 40; why.push("decision-maker title"); }
+      else if (ch.some((k) => hasWord(t, k))) { s += 25; why.push("champion title"); }
+      else if (icp.fns.includes(fn)) { s += 10; why.push(fn.toLowerCase() + " role"); }
+      if (icp.sens.includes(sen)) { s += 20; why.push(sen === "C-level/Founder" ? "C-level" : sen + "-level"); }
+      if (tgt.some((c) => co && co.includes(c))) { s += 30; why.push("target account"); }
+      else if (ind.some((k) => co && hasWord(co, k))) { s += 15; why.push("industry match"); }
+      if (p.date) s += now - p.date.getTime() < twoYears ? 10 : 5;
+      if (isPartner) tag = "Partner";
+      const tier = s >= 75 ? "A" : s >= 50 ? "B" : s >= 25 ? "C" : "N";
+      const whyText = why.length ? why[0][0].toUpperCase() + why.join(", ").slice(1) : (p.title ? "No match with your ideal customer" : "No job title in export");
+      return { ...p, fn, sen, score: Math.min(100, s), tier, tag, why: whyText };
+    }).sort((a, b) => b.score - a.score || (b.date ? b.date.getTime() : 0) - (a.date ? a.date.getTime() : 0));
+  }
+
+  /* ---------- tooltip ---------- */
+  const tip = $("tip");
+  function bindTip(node, value, label) {
+    node.tabIndex = 0;
+    const show = (x, y) => {
+      tip.replaceChildren(el("strong", null, value), document.createTextNode(label));
+      const r = tip.getBoundingClientRect();
+      tip.style.left = Math.min(window.innerWidth - r.width - 8, Math.max(8, x + 12)) + "px";
+      tip.style.top = Math.max(8, y - r.height - 12) + "px";
+      tip.style.opacity = 1;
+    };
+    node.addEventListener("pointermove", (e) => show(e.clientX, e.clientY));
+    node.addEventListener("focus", () => { const b = node.getBoundingClientRect(); show(b.left + b.width / 2, b.top); });
+    const hide = () => (tip.style.opacity = 0);
+    node.addEventListener("pointerleave", hide);
+    node.addEventListener("blur", hide);
+  }
+
+  /* ---------- rendering ---------- */
+  let raw = [], scored = [], isSample = true, shown = 50;
+
+  function tiles() {
+    const n = scored.length;
+    const cnt = (f) => scored.filter(f).length;
+    const a = cnt((p) => p.tier === "A"), b = cnt((p) => p.tier === "B");
+    const dm = cnt((p) => p.sen === "C-level/Founder" || p.sen === "VP");
+    const recent = cnt((p) => p.date && Date.now() - p.date.getTime() < 90 * 864e5);
+    const partners = cnt((p) => p.tag === "Partner");
+    const inc = cnt((p) => !p.company || !p.title);
+    const data = [
+      [fmt(n), "Connections", raw.length && raw.some((p) => p.date) ? "since " + new Date(Math.min(...raw.filter((p) => p.date).map((p) => p.date.getTime()))).getFullYear() : ""],
+      [fmt(a), "Tier A prospects", pct(a, n) + "% of network"],
+      [fmt(b), "Tier B prospects", pct(b, n) + "% of network"],
+      [fmt(dm), "VP or C-level", pct(dm, n) + "% of network"],
+      [fmt(partners), "Possible partners", "consultants, agencies, advisors"],
+      [fmt(recent), "Added in last 90 days", inc ? pct(inc, n) + "% missing title or company" : "all rows complete"],
+    ];
+    $("tiles").replaceChildren(...data.map(([v, k, d]) => { const t = el("div", "tile"); t.append(el("div", "v", v), el("div", "k", k), el("div", "d", d)); return t; }));
+  }
+
+  function tierChart() {
+    const n = scored.length;
+    const stack = $("tierStack"), leg = $("tierLegend");
+    stack.replaceChildren(); leg.replaceChildren();
+    for (const t of TIERS) {
+      const c = scored.filter((p) => p.tier === t.k).length;
+      if (c) {
+        const seg = el("div", "seg"); seg.style.flex = c + " 1 0"; seg.style.background = "var(" + t.v + ")";
+        seg.setAttribute("aria-label", t.label + ": " + c);
+        bindTip(seg, fmt(c) + " · " + pct(c, n) + "%", t.label);
+        stack.append(seg);
+      }
+      const li = el("div", "li"); const sw = el("span", "sw"); sw.style.background = "var(" + t.v + ")";
+      li.append(sw, document.createTextNode(t.label + " "), el("b", null, fmt(c)));
+      leg.append(li);
+    }
+  }
+
+  function hbars(target, rows, chipFor) {
+    const max = Math.max(1, ...rows.map((r) => r[1]));
+    const n = scored.length;
+    $(target).replaceChildren(...rows.map(([label, v]) => {
+      const row = el("div", "hrow");
+      const lab = el("div", "lab"); lab.append(el("span", null, label));
+      if (chipFor && chipFor(label)) lab.append(el("span", "chip", chipFor(label)));
+      const track = el("div", "track"); const fill = el("div", "fill"); fill.style.width = (v / max) * 100 + "%"; track.append(fill);
+      row.append(lab, track, el("div", "val", fmt(v)));
+      row.setAttribute("aria-label", label + ": " + v);
+      bindTip(row, fmt(v) + " · " + pct(v, n) + "%", label);
+      return row;
+    }));
+  }
+
+  function growth() {
+    const byQ = new Map();
+    for (const p of scored) if (p.date) { const k = p.date.getFullYear() * 4 + Math.floor(p.date.getMonth() / 3); byQ.set(k, (byQ.get(k) || 0) + 1); }
+    const cols = $("cols"), xl = $("xlabs");
+    cols.replaceChildren(); xl.replaceChildren();
+    if (!byQ.size) { $("growthNote").textContent = "No dates in export"; return; }
+    const last = Math.max(...byQ.keys());
+    const keys = []; for (let k = last - 11; k <= last; k++) keys.push(k);
+    const vals = keys.map((k) => byQ.get(k) || 0);
+    const rawMax = Math.max(1, ...vals);
+    const step = rawMax <= 10 ? 5 : rawMax <= 40 ? 10 : rawMax <= 100 ? 25 : Math.pow(10, Math.floor(Math.log10(rawMax))) ;
+    const top = Math.ceil(rawMax / step) * step;
+    for (let g = step; g <= top; g += step) { const gl = el("div", "gl"); gl.style.bottom = (g / top) * 100 + "%"; gl.append(el("span", null, String(g))); cols.append(gl); }
+    $("growthNote").textContent = "Last 12 quarters";
+    keys.forEach((k, i) => {
+      const y = Math.floor(k / 4), q = (k % 4) + 1;
+      const c = el("div", "c"); const bar = el("i"); bar.style.height = (vals[i] / top) * 100 + "%"; c.append(bar);
+      c.setAttribute("aria-label", "Q" + q + " " + y + ": " + vals[i]);
+      bindTip(c, fmt(vals[i]) + " added", "Q" + q + " " + y);
+      cols.append(c);
+      xl.append(el("span", null, q === 1 || i === 0 ? "Q" + q + " ’" + String(y).slice(2) : "Q" + q));
+    });
+  }
+
+  function charts() {
+    const count = (key, order) => { const m = new Map(order.map((o) => [o, 0])); scored.forEach((p) => m.set(p[key], (m.get(p[key]) || 0) + 1)); return [...m]; };
+    hbars("fnBars", count("fn", FUNCTIONS).filter((r) => r[1] > 0).sort((a, b) => (a[0] === "Other") - (b[0] === "Other") || b[1] - a[1]));
+    hbars("senBars", count("sen", SENIORITY));
+    const co = new Map(); scored.forEach((p) => { if (p.company) co.set(p.company, (co.get(p.company) || 0) + 1); });
+    const tgt = list(icp.tgt), comp = list(icp.comp);
+    hbars("coBars", [...co].sort((a, b) => b[1] - a[1]).slice(0, 10), (name) => {
+      const n = name.toLowerCase();
+      return comp.some((c) => n.includes(c)) ? "Competitor" : tgt.some((c) => n.includes(c)) ? "Target" : "";
+    });
+    growth();
+  }
+
+  function filtered() {
+    const q = $("q").value.trim().toLowerCase(), t = $("fTier").value, f = $("fFn").value, s = $("fSen").value;
+    return scored.filter((p) =>
+      (!t || (t === "P" ? p.tag === "Partner" : p.tier === t)) && (!f || p.fn === f) && (!s || p.sen === s) &&
+      (!q || (p.first + " " + p.last + " " + p.title + " " + p.company).toLowerCase().includes(q)));
+  }
+
+  function table() {
+    const rows = filtered();
+    $("count").textContent = fmt(rows.length) + " of " + fmt(scored.length);
+    const tb = $("tbody");
+    tb.replaceChildren(...rows.slice(0, shown).map((p) => {
+      const tr = el("tr");
+      const sc = el("td", "score"); sc.append(document.createTextNode(p.score)); const m = el("div", "meter"); const mi = el("i"); mi.style.width = p.score + "%"; m.append(mi); sc.append(m);
+      const ti = el("td"); ti.append(el("span", "pill " + p.tier, p.tier === "N" ? "Not a fit" : "Tier " + p.tier)); if (p.tag) ti.append(el("span", "tagp", p.tag));
+      const nm = el("td"); const name = (p.first + " " + p.last).trim() || "(no name)";
+      if (p.url && /^https:\/\/([a-z]+\.)?linkedin\.com\//i.test(p.url)) { const a = el("a", null, name); a.href = p.url; a.target = "_blank"; a.rel = "noopener"; nm.append(a); } else nm.append(document.createTextNode(name));
+      const td = (txt, cls) => el("td", cls, txt);
+      const why = el("td"); why.append(el("span", "why", p.why));
+      tr.append(sc, ti, nm, td(p.title || "—", p.title ? "" : "muted"), td(p.company || "—", p.company ? "" : "muted"),
+        td(p.date ? p.date.toLocaleDateString("en-GB", { month: "short", year: "numeric" }) : "—", "num muted"), why);
+      return tr;
+    }));
+    $("moreBtn").hidden = rows.length <= shown;
+  }
+
+  function icpSummary() {
+    $("icpSummary").textContent = list(icp.dm).length + " decision-maker titles · " + list(icp.tgt).length + " target accounts · " + icp.sens.length + " seniority levels" + (isSample ? " · sample profile, edit it to match your business" : "");
+  }
+
+  function render() {
+    scored = score(raw);
+    tiles(); tierChart(); charts(); table(); icpSummary();
+  }
+
+  /* ---------- controls ---------- */
+  function buildIcpForm() {
+    const map = { dmKw: "dm", chKw: "ch", tgtCo: "tgt", indKw: "ind", partKw: "part", compCo: "comp" };
+    for (const [id, key] of Object.entries(map)) {
+      $(id).value = icp[key];
+      $(id).addEventListener("input", () => { icp[key] = $(id).value; saveIcp(); render(); });
+    }
+    const checks = (box, opts, key) => {
+      $(box).replaceChildren(...opts.filter((o) => o !== "Unknown" && o !== "Other").map((o, i) => {
+        const id = box + i; const lab = el("label"); const cb = el("input"); cb.type = "checkbox"; cb.id = id; cb.checked = icp[key].includes(o);
+        cb.addEventListener("change", () => { icp[key] = cb.checked ? [...icp[key], o] : icp[key].filter((x) => x !== o); saveIcp(); render(); });
+        lab.htmlFor = id; lab.append(cb, document.createTextNode(o)); return lab;
+      }));
+    };
+    checks("fnChecks", FUNCTIONS, "fns");
+    checks("senChecks", SENIORITY, "sens");
+    for (const [sel, opts] of [["fFn", FUNCTIONS], ["fSen", SENIORITY]]) opts.forEach((o) => { const op = el("option", null, o); op.value = o; $(sel).append(op); });
+  }
+
+  function setMode(sample, name) {
+    isSample = sample;
+    const n = $("notice");
+    n.className = "notice" + (sample ? "" : " real");
+    const p = el("p"); const tag = el("span", "tag", sample ? "SAMPLE" : "YOUR DATA");
+    if (sample) {
+      p.append(el("b", null, "You're looking at made-up sample data"), document.createTextNode(" (420 fictional connections). Load your "), el("span", "num", "Connections.csv"), document.createTextNode(" to see your own network. The file is read inside your browser only; it is not uploaded or saved anywhere."));
+    } else {
+      p.append(el("b", null, "Showing your export: " + name), document.createTextNode(" (" + fmt(raw.length) + " connections). It stays in this browser tab and is cleared when you close or reload the page."));
+    }
+    n.replaceChildren(tag, p);
+    $("sampleBtn").hidden = sample;
+    shown = 50; render();
+  }
+
+  $("loadBtn").addEventListener("click", () => $("file").click());
+  $("file").addEventListener("change", () => {
+    const f = $("file").files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try { raw = fromExport(String(r.result)); setMode(false, f.name); }
+      catch (e) {
+        const n = $("notice"); n.className = "notice";
+        const p = el("p"); p.append(el("span", "err", "Couldn't read " + f.name + ". "), document.createTextNode(e.message + " Download it from LinkedIn → Settings & Privacy → Data privacy → Get a copy of your data → Connections."));
+        n.replaceChildren(el("span", "tag", "ERROR"), p);
+      }
+      $("file").value = "";
+    };
+    r.readAsText(f);
+  });
+  $("sampleBtn").addEventListener("click", () => { raw = makeSample(); setMode(true); });
+  for (const id of ["q", "fTier", "fFn", "fSen"]) $(id).addEventListener("input", () => { shown = 50; table(); });
+  $("moreBtn").addEventListener("click", () => { shown += 50; table(); });
+  $("copyBtn").addEventListener("click", () => {
+    const esc = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+    const lines = [["Score", "Tier", "Tag", "First Name", "Last Name", "Title", "Company", "Function", "Seniority", "Connected On", "URL", "Why"].join(",")];
+    filtered().forEach((p) => lines.push([p.score, p.tier === "N" ? "Not a fit" : p.tier, p.tag, p.first, p.last, p.title, p.company, p.fn, p.sen, p.date ? p.date.toISOString().slice(0, 10) : "", p.url, p.why].map(esc).join(",")));
+    const text = lines.join("\n"); const btn = $("copyBtn");
+    const done = (msg) => { btn.textContent = msg; setTimeout(() => (btn.textContent = "Copy as CSV"), 1800); };
+    try {
+      navigator.clipboard.writeText(text).then(() => done("Copied " + fmt(lines.length - 1) + " rows"), () => done("Copy blocked by browser"));
+    } catch (e) { done("Copy blocked by browser"); }
+  });
+
+  buildIcpForm();
+  raw = makeSample();
+  setMode(true);
+})();
+</script>
